@@ -29,4 +29,4 @@ jobs:
 
       - name: Run Docker image container
         run: |
-          docker run -d -rm -p 8080:8080 muhdlai08/tryanderror:v1
+          docker run -d --rm -p 8080:8080 muhdlai08/tryanderror:v1
