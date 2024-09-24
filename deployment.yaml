@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aspnetapp-deployment  # Name of deployment
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: aspnetapp   # Select Pods that match these labels
+  template:
+    metadata:
+      labels:
+        app: aspnetapp   # Labels that Pods created by the Deployment will have
+    spec:
+      containers:
+      - name: aspnetapp   # Giving a name for the container being deployed 
+        image: muhdlai08/tryanderror:v1   # Select docker image you have on your machine
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service  
+metadata:
+  name: aspnetapp-service  # Name of Service
+spec:
+  selector:
+    app: aspnetapp   # Looks for pods with "aspnetapp" in the name
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: LoadBalancer
