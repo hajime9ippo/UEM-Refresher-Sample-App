@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Retrieve Secrets from Vault
 
 on:
   push:
@@ -6,13 +6,32 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
-    runs-on: self-hosted
+  retrieve-secrets:
+    runs-on: self-hosted  # Use your self-hosted runner
 
     steps:
+      # Step 1: Checkout the code (optional if you don't need the repository files)
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Step 2: Retrieve Docker credentials from Vault
+      - name: Retrieve Docker Credentials
+        id: vault-secrets
+        uses: hashicorp/vault-action@v2
+        with:
+          url: http://localhost:8200  # Replace with your Vault URL if different
+          method: approle
+          roleId: 6c139877-7ac1-3820-3a6d-e1045163e5c0  # Your Vault Role ID
+          secretId: b68893d7-dd28-d0da-d566-e5ba59555322  # Your Vault Secret ID
+          secrets: |
+            secret/data/docker-credentials docker-username | DOCKER_USERNAME ;
+            secret/data/docker-credentials docker-password | DOCKER_PASSWORD
+
+      - name: echo
+        run: |
+          echo ${{ steps.vault-secrets.outputs.DOCKER_USERNAME }}
+          echo ${{ steps.vault-secrets.outputs.DOCKER_PASSWORD }}
+            
       - name: Build Docker image
         run: |
           docker build -t muhdlai08/tryanderror:v1 .
@@ -20,13 +39,13 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERUSERNAME }}
-          password: ${{ secrets.DOCKERPASSWORD }}
+          username: ${{ steps.vault-secrets.outputs.DOCKER_USERNAME }}
+          password: ${{ steps.vault-secrets.outputs.DOCKER_PASSWORD }}
 
       - name: Push Docker image
         run: |
           docker push muhdlai08/tryanderror:v1
 
-      - name: Run Docker image container
+      - name: Apply Kubernetes manifests
         run: |
-          docker run -d --rm -p 8080:8080 muhdlai08/tryanderror:v1
+          kubectl apply -f ./deployment.yaml
